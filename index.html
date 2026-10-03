@@ -23,6 +23,27 @@ button{width:100%;min-height:44px;margin-bottom:8px;border:1px solid #ccc;border
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.controls button{margin:0}
 .hint{font-size:12px;color:#777;line-height:1.5}.status{font-size:13px;color:#777;min-height:20px}
 @media(max-width:560px){body{padding:10px}.wrap{padding:10px;gap:10px;flex-direction:column;align-items:center}.board{grid-template-columns:repeat(10,calc((min(92vw,330px) - 6px)/10));grid-template-rows:repeat(20,calc((min(92vw,330px) - 6px)/10))}.cell{width:auto;height:auto}.side{width:min(330px,92vw);display:grid;grid-template-columns:1fr 1fr;gap:8px}.panel{margin:0}.side button,.hint{grid-column:1/-1}}
+html, body {
+  margin: 0;
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+
+#game,
+canvas,
+.game-container {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+button,
+.control-button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
 </style>
 </head>
 <body>
