@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="俄罗斯方块">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>俄罗斯方块</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f5f5;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;justify-content:center;min-height:100vh;padding:20px}
+.wrap{display:flex;gap:18px;align-items:flex-start;background:#fff;padding:18px;border-radius:16px;box-shadow:0 4px 20px #0001}
+.board{display:grid;grid-template-columns:repeat(10,30px);grid-template-rows:repeat(20,30px);background:#111;border:3px solid #222}
+.cell{width:30px;height:30px;border:1px solid #222;background:#181818}
+.filled{background:#39a9ff;border:2px solid #bfe7ff;border-radius:4px}
+.side{width:150px}.panel{background:#f7f7f7;border:1px solid #ddd;border-radius:10px;padding:10px;margin-bottom:10px}
+.label{font-size:12px;color:#777}.value{font-size:22px;font-weight:700}
+.next{display:grid;grid-template-columns:repeat(4,20px);grid-template-rows:repeat(4,20px);justify-content:center;margin-top:8px}.n{width:20px;height:20px}.n.filled{background:#39a9ff;border:1px solid #bfe7ff}
+button{width:100%;min-height:44px;margin-bottom:8px;border:1px solid #ccc;border-radius:9px;background:#fff;font-size:16px;font-weight:600}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}.controls button{margin:0}
+.hint{font-size:12px;color:#777;line-height:1.5}.status{font-size:13px;color:#777;min-height:20px}
+@media(max-width:560px){body{padding:10px}.wrap{padding:10px;gap:10px;flex-direction:column;align-items:center}.board{grid-template-columns:repeat(10,calc((min(92vw,330px) - 6px)/10));grid-template-rows:repeat(20,calc((min(92vw,330px) - 6px)/10))}.cell{width:auto;height:auto}.side{width:min(330px,92vw);display:grid;grid-template-columns:1fr 1fr;gap:8px}.panel{margin:0}.side button,.hint{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap" id="game">
+<div>
+<div id="board" class="board"></div>
+<div class="controls">
+<button id="left">←</button><button id="rotate">↻</button><button id="right">→</button>
+<button id="down">↓</button><button id="drop">⤓</button><button id="pause">暂停</button>
+</div>
+</div>
+<div class="side">
+<div class="panel"><div class="label">分数</div><div id="score" class="value">0</div></div>
+<div class="panel"><div class="label">等级</div><div id="level" class="value">1</div></div>
+<div class="panel"><div class="label">消行</div><div id="lines" class="value">0</div></div>
+<div class="panel"><div class="label">下一块</div><div id="next" class="next"></div></div>
+<button id="restart">重新开始</button>
+<div id="status" class="status">准备开始</div>
+<div class="hint">电脑：← → 移动，↑ 旋转，↓ 加速，空格落下，P 暂停。<br>手机直接点击按钮。</div>
+</div>
+</div>
+<script>
+(()=>{const W=10,H=20,shapes=[[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[0,1,1],[1,1,0]],[[1,1,0],[0,1,1]]];let b,p,n,s,l,lv,paused,over,timer,last;
+const $=id=>document.getElementById(id),board=$('board');
+function rnd(){return shapes[Math.floor(Math.random()*shapes.length)].map(r=>r.slice())}
+function start(){b=Array.from({length:H},()=>Array(W).fill(0));s=0;l=0;lv=1;paused=false;over=false;n=rnd();spawn();msg('游戏进行中');loop()}
+function spawn(){p={shape:n,x:Math.floor((W-n[0].length)/2),y:0};n=rnd();next();if(hit(p.x,p.y,p.shape)){over=true;msg('游戏结束')}}
+function hit(x,y,a){for(let r=0;r<a.length;r++)for(let c=0;c<a[r].length;c++)if(a[r][c]&&(x+c<0||x+c>=W||y+r>=H||(y+r>=0&&b[y+r][x+c])))return true;return false}
+function merge(){p.shape.forEach((r,rr)=>r.forEach((v,c)=>{if(v&&p.y+rr>=0)b[p.y+rr][p.x+c]=1}))}
+function clear(){let z=0;b=b.filter(r=>{if(r.every(Boolean)){z++;return false}return true});while(b.length<H)b.unshift(Array(W).fill(0));if(z){l+=z;s+=[0,100,300,500,800][z]*lv;lv=Math.floor(l/10)+1}}
+function move(d){if(paused||over)return;if(!hit(p.x+d,p.y,p.shape)){p.x+=d;draw()}}
+function rot(){if(paused||over)return;let a=p.shape,q=a[0].map((_,i)=>a.map(r=>r[i]).reverse());if(!hit(p.x,p.y,q)){p.shape=q;draw()}}
+function down(){if(paused||over)return;if(!hit(p.x,p.y+1,p.shape)){p.y++;s++;draw()}else lock()}
+function drop(){if(paused||over)return;while(!hit(p.x,p.y+1,p.shape)){p.y++;s+=2}lock()}
+function lock(){merge();clear();spawn();draw()}
+function draw(){board.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let d=document.createElement('div');d.className='cell'+(b[y][x]?' filled':'');board.appendChild(d)}if(p&&!over)p.shape.forEach((r,rr)=>r.forEach((v,c)=>{if(v&&p.y+rr>=0&&p.y+rr<H&&p.x+c>=0&&p.x+c<W)board.children[(p.y+rr)*W+p.x+c].classList.add('filled')}));$('score').textContent=s;$('lines').textContent=l;$('level').textContent=lv}
+function next(){let e=$('next');e.innerHTML='';for(let r=0;r<4;r++)for(let c=0;c<4;c++){let d=document.createElement('div');d.className='n'+(n[r]&&n[r][c]?' filled':'');e.appendChild(d)}}
+function msg(x){$('status').textContent=x}
+function loop(){clearTimeout(timer);last=Date.now();function f(){if(!paused&&!over&&Date.now()-last>=Math.max(90,700-(lv-1)*55)){down();last=Date.now()}timer=setTimeout(f,35)}f()}
+function toggle(){if(over)return;paused=!paused;msg(paused?'已暂停':'游戏进行中');last=Date.now()}
+$('left').onclick=()=>move(-1);$('right').onclick=()=>move(1);$('rotate').onclick=rot;$('down').onclick=down;$('drop').onclick=drop;$('pause').onclick=toggle;$('restart').onclick=start;
+$('game').tabIndex=0;$('game').onclick=()=>$('game').focus();$('game').onkeydown=e=>{if(e.key==='ArrowLeft')move(-1);else if(e.key==='ArrowRight')move(1);else if(e.key==='ArrowDown')down();else if(e.key==='ArrowUp')rot();else if(e.key===' ')drop();else if(e.key.toLowerCase()==='p')toggle();else return;e.preventDefault()};start()})();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}</script>
+</body>
+</html>
